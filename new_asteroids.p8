@@ -2,23 +2,33 @@ pico-8 cartridge // http://www.pico-8.com
 version 36
 __lua__
 
-speed = 4
+speed = 2
+
+centre = 64
+edge = 128
 
 ship_up_spr = 1
 ship_rt_spr = 2
 ship_diag_spr = 3
 
 shot_fired = false
+num_asteroids = 5
+asteroids_active = true
 
 pos = {}
+asteroids = {}
 
 
 -- directions laid out as
 --
 --          0
---       7     1
---    6								   2
---       5     3
+--
+--      7       1
+--
+--  6								       2
+--
+--      5       3
+--
 --          4
 
 up = 0
@@ -94,8 +104,8 @@ function update_ship()
 	end
 	
 	pos.shot_dir = pos.prev_dir
-	pos.me_x %= 128
-	pos.me_y %= 128
+	pos.me_x %= edge
+	pos.me_y %= edge
 end
 
 function update_shot()
@@ -137,12 +147,55 @@ function update_shot()
 		pos.shot_x += pos.shot_x_inc
 		pos.shot_y += pos.shot_y_inc
 		if (pos.shot_x < 0
-	 				or pos.shot_x >= 128
+	 				or pos.shot_x >= edge
 					 or pos.shot_y < 0
-						or pos.shot_y >= 128) then
+						or pos.shot_y >= edge) then
 			shot_fired = false
 		end
 	end
+end
+
+function update_asteroids()
+	for i=0,num_asteroids do
+		if asteroids[i] then
+			ast_name = "ast" .. tostr(i)
+			x_coord = ast_name .. "_x"
+			y_coord = ast_name .. "_y" 
+
+			if (
+				(
+					(
+				  (pos.shot_x + 2) >= (pos[x_coord] - 2)
+					)
+ 			and (
+						(pos.shot_x - 2) <= (pos[x_coord] + 2)
+			 	)
+			 )
+			and (
+			(
+					(pos.shot_y + 2) >= (pos[y_coord] - 2)
+					)
+			and (
+					(pos.shot_y - 2) <= (pos[y_coord] + 2)
+					)
+				)
+			)
+							then
+				asteroids[i] = false
+			end
+		end
+	end
+end
+
+function draw_ast(num)
+	if asteroids[num] then
+		ast_name = "ast" .. tostr(num)
+		spr(
+				5,
+				pos[ast_name .. "_x"],
+				pos[ast_name .. "_y"]
+			)
+		end
 end
 
 function _init()
@@ -152,46 +205,62 @@ function _init()
 	pos.face_left = false
 	pos.face_down = pos.face_left
 
- pos.me_x = 64
- pos.me_y = 64
+ pos.me_x = centre
+ pos.me_y = centre
 
-	num_asteroids = rnd(5)
+
+	for i=0,num_asteroids do
+		ast_name = "ast" .. tostr(i)
+		x_coord = ast_name .. "_x"
+		y_coord = ast_name .. "_y" 
+
+		pos[x_coord] = rnd({
+			flr(rnd(centre) - 20), 
+			centre + 10 + flr(rnd(edge)), 
+			}
+		)
+		pos[y_coord] = rnd({
+			flr(rnd(centre) - 20), 
+			centre + 10 + flr(rnd(edge)), 
+			}
+		)
+		add(asteroids, true)
 	end
+end
 
 function _update()
 	update_ship()
 	update_shot()
+	if shot_fired then
+		update_asteroids()
+	end
 end
 
 function _draw()
 	cls()
 
 	spr(
-	pos.sprite,
-	pos.me_x,
-	pos.me_y,
-	1,
-	1,
-	pos.face_left,
-	pos.face_down
+		pos.sprite,
+		pos.me_x,
+		pos.me_y,
+		1,
+		1,
+		pos.face_left,
+		pos.face_down
 	)
 
 	if shot_fired then
 		spr(
-		4,
-		pos.shot_x,
-		pos.shot_y
+			4,
+			pos.shot_x,
+			pos.shot_y
 		)
 	end
 
-	for i = 1, num_asteroids do
-		--pos["asteroid" + str(i) + "x"]
-		spr(5,
-						rnd(128),
-						rnd(128)
-						)
+	for i=0,num_asteroids do
+		draw_ast(i)
 	end
-
+		
 end
 
 __gfx__
